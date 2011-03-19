@@ -27,9 +27,8 @@ import tornado.websocket
 from tornado.web import URLSpec as url
 from tornado.options import define, options
 
-from pygltail.config import Config
-from pygltail.sshtail import SSHFileTail
-from pygltail.consumer import Consumer
+from ballfactory.config import Config
+from ballfactory.sshtail import SSHFileTail
 
 
 define("port", default=8888, help="run on the given port", type=int)

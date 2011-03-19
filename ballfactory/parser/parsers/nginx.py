@@ -1,6 +1,6 @@
 import re
 import httpagentparser
-from pygltail.parser.parsers import Parser
+from ballfactory.parser.parsers import Parser
 
 class Backend(Parser):
     """docstring for Nginx"""

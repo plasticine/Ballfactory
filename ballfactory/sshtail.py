@@ -6,7 +6,7 @@ import hashlib
 import logging
 import httplib, urllib
 from string import Template
-from pygltail.parser import get_parser
+from ballfactory.parser import get_parser
 
 SSH_DIR = os.path.join(os.path.expanduser('~'),'.ssh')
 SSH_KEY = os.path.join(SSH_DIR, 'id_rsa')
