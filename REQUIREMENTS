@@ -1,7 +1,3 @@
-pyopengl
-pygame
-processing
-log4tailer
 paramiko
 configobj
 pyparsing
