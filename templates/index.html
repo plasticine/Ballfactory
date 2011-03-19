@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html lang="en-us">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <link rel="stylesheet" href="{{ static_url('styles/styles.css') }}" type="text/css" media="screen" title="no title" charset="utf-8">
+</head>
+<body>
+    <div id="debug">
+        <ul>
+            <li class="fps">-</li>
+            <li class="requests">-</li>
+        </ul>
+    </div>
+    <canvas id="canvas" width="900" height="750" style="display:none;"></canvas>
+    <ol id="log"></ol>
+    
+    <script id="hosts" type="application/json">{{ json_encode(hosts) }}</script>
+    <script src="{{ static_url('scripts/jquery.js') }}" type="text/javascript" charset="utf-8"></script>
+    <script src="{{ static_url('scripts/Box2dWeb-2.1a.2.js.js') }}" type="text/javascript" charset="utf-8"></script>
+    <script src="{{ static_url('scripts/main.js') }}" type="text/javascript" charset="utf-8"></script>
+</body>
+</html>
