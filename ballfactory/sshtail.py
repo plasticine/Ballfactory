@@ -53,7 +53,7 @@ class SSHFileTail(object):
             new_channel.exec_command(Template(TAIL_COMMAND).substitute(file=file['path']))
             self.channels[hashlib.sha1(label).hexdigest()] = {
                 'channel':new_channel,
-                'parser':get_parser(parser='pygltail.parser.parsers.%s.Backend' % (file['parser']))
+                'parser':get_parser(parser='ballfactory.parser.parsers.%s.Backend' % (file['parser']))
             }
         try:
             while True:
