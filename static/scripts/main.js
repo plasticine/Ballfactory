@@ -1,11 +1,18 @@
 (function() {
-  var Engine, Remotes, Viewport;
-  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  var CanvasViewport, Engine, Remotes, Viewport, WebGLViewport;
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
+    for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
+    function ctor() { this.constructor = child; }
+    ctor.prototype = parent.prototype;
+    child.prototype = new ctor;
+    child.__super__ = parent.prototype;
+    return child;
+  };
   Engine = (function() {
     function Engine() {
       this.physicsMessage = __bind(this.physicsMessage, this);;      this.drawables = [];
       this.remotes = new Remotes(this);
-      this.viewport = new Viewport(this);
+      this.viewport = new CanvasViewport(this);
       this.physics = new Worker('/static/scripts/physics.js');
       this.physics.onmessage = this.physicsMessage;
       this.physics.onerror = this.physicsError;
@@ -68,7 +75,7 @@
     function Viewport(parent) {
       this.parent = parent;
       this.fps = __bind(this.fps, this);;
-      this.stepViewport = __bind(this.stepViewport, this);;
+      this.scale = __bind(this.scale, this);;
       this.loop = __bind(this.loop, this);;
       this.canvas = $('canvas#viewport');
       this.context = this.canvas[0].getContext("2d");
@@ -88,35 +95,14 @@
       now = new Date().getTime();
       delta = (now - this.lastUpdate) / 1000;
       this.lastUpdate = now;
-      this.stepViewport();
+      this.draw();
       this.frames++;
       return this.loopTimer = setTimeout((__bind(function() {
         return this.loop();
-      }, this)), 1000 / 32);
+      }, this)), 1000 / 50);
     };
     Viewport.prototype.scale = function(qty) {
       return qty * this.viewportScale;
-    };
-    Viewport.prototype.stepViewport = function() {
-      var drawable, height, width, _i, _len, _ref, _results;
-      this.context.clearRect(0, 0, this.canvas.width(), this.canvas.height());
-      _ref = this.parent.drawables;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        drawable = _ref[_i];
-        this.context.beginPath();
-        switch (drawable.shape.type) {
-          case 'polygon':
-            width = (Math.abs(drawable.shape.vertices[0].x) + Math.abs(drawable.shape.vertices[1].x)) * this.viewportScale;
-            height = (Math.abs(drawable.shape.vertices[1].y) + Math.abs(drawable.shape.vertices[2].y)) * this.viewportScale;
-            this.context.fillRect(drawable.position.x * this.viewportScale, drawable.position.y * this.viewportScale, width, height);
-            break;
-          case 'circle':
-            this.context.arc(this.scale(drawable.position.x), this.scale(drawable.position.y), this.scale(drawable.shape.radius), 0, Math.PI * 2, false);
-        }
-        _results.push(this.context.fill());
-      }
-      return _results;
     };
     Viewport.prototype.fps = function() {
       this.fpsActual = this.frames;
@@ -127,6 +113,42 @@
       }, this)), 1000);
     };
     return Viewport;
+  })();
+  CanvasViewport = (function() {
+    function CanvasViewport() {
+      this.draw = __bind(this.draw, this);;      CanvasViewport.__super__.constructor.apply(this, arguments);
+    }
+    __extends(CanvasViewport, Viewport);
+    CanvasViewport.prototype.draw = function() {
+      var drawable, height, width, _i, _len, _ref, _results;
+      this.context.clearRect(0, 0, this.canvas.width(), this.canvas.height());
+      _ref = this.parent.drawables;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        drawable = _ref[_i];
+        this.context.beginPath();
+        switch (drawable.shape.type) {
+          case 'polygon':
+            width = Math.abs(drawable.shape.vertices[0].x) + Math.abs(drawable.shape.vertices[1].x);
+            height = Math.abs(drawable.shape.vertices[1].y) + Math.abs(drawable.shape.vertices[2].y);
+            this.context.fillRect(this.scale(drawable.position.x), this.scale(drawable.position.y), this.scale(width), this.scale(height));
+            break;
+          case 'circle':
+            this.context.arc(this.scale(drawable.position.x), this.scale(drawable.position.y), this.scale(drawable.shape.radius), 0, Math.PI * 2, false);
+        }
+        _results.push(this.context.stroke());
+      }
+      return _results;
+    };
+    return CanvasViewport;
+  })();
+  WebGLViewport = (function() {
+    function WebGLViewport() {
+      this.draw = __bind(this.draw, this);;      WebGLViewport.__super__.constructor.apply(this, arguments);
+    }
+    __extends(WebGLViewport, Viewport);
+    WebGLViewport.prototype.draw = function() {};
+    return WebGLViewport;
   })();
   jQuery(function() {
     return window.engine = new Engine();

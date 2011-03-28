@@ -2,7 +2,8 @@ class Engine
     constructor: ->
         this.drawables = []
         this.remotes = new Remotes(this)
-        this.viewport = new Viewport(this)
+        this.viewport = new CanvasViewport(this)
+        # this.viewport = new WebGLViewport(this)
         this.physics = new Worker('/static/scripts/physics.js')
         this.physics.onmessage = this.physicsMessage
         this.physics.onerror = this.physicsError
@@ -70,23 +71,35 @@ class Viewport
         now = new Date().getTime()
         delta = (now - @lastUpdate) / 1000
         @lastUpdate = now
-        this.stepViewport()
+        this.draw()
         @frames++
-        @loopTimer = setTimeout(( => @loop() ), 1000/32)
+        @loopTimer = setTimeout(( => @loop() ), 1000/50)
     
-    scale: (qty) ->
+    scale: (qty) =>
         qty * @viewportScale
     
-    stepViewport: =>
+    fps: =>
+        @fpsActual = @frames
+        @frames = 0
+        $('.viewport-fps span', '#debug').html("#{ @fpsActual }")
+        @framerateTimer = setTimeout(( => @fps() ), 1000)
+
+
+class CanvasViewport extends Viewport
+    draw: =>
         @context.clearRect(0, 0, @canvas.width(), @canvas.height())
         for drawable in @parent.drawables
             @context.beginPath()
             switch drawable.shape.type
                 when 'polygon'
-                    width = (Math.abs(drawable.shape.vertices[0].x) + Math.abs(drawable.shape.vertices[1].x)) * @viewportScale
-                    height = (Math.abs(drawable.shape.vertices[1].y) + Math.abs(drawable.shape.vertices[2].y)) * @viewportScale
-                    @context.fillRect(drawable.position.x * @viewportScale, drawable.position.y * @viewportScale, width, height)
-                    
+                    width = (Math.abs(drawable.shape.vertices[0].x) + Math.abs(drawable.shape.vertices[1].x))
+                    height = (Math.abs(drawable.shape.vertices[1].y) + Math.abs(drawable.shape.vertices[2].y))
+                    @context.fillRect(
+                        this.scale(drawable.position.x),
+                        this.scale(drawable.position.y),
+                        this.scale(width),
+                        this.scale(height)
+                    )
                 when 'circle'
                     @context.arc(
                         this.scale(drawable.position.x),
@@ -96,14 +109,12 @@ class Viewport
                         Math.PI*2,
                         false
                     )
-            @context.fill()
-    
-    fps: =>
-        @fpsActual = @frames
-        @frames = 0
-        $('.viewport-fps span', '#debug').html("#{ @fpsActual }")
-        @framerateTimer = setTimeout(( => @fps() ), 1000)
+            @context.stroke()
 
+
+class WebGLViewport extends Viewport
+    draw: =>
+        
 
 jQuery ->
     window.engine = new Engine()
