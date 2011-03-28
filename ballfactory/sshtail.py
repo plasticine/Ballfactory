@@ -39,7 +39,6 @@ class SSHFileTail(object):
     
     def connect(self):
         try:
-            print 'connecting to %s:%s...' % (self.host, '####')
             self.ssh.connect(self.host, port=self.port, key_filename=SSH_KEY)
             self.transport = self.ssh.get_transport()
             return True
@@ -48,7 +47,6 @@ class SSHFileTail(object):
     
     def run(self):
         for label, file in self.files.items():
-            print 'tailing %s:/%s to %s parser...' % (self.host, file['path'], file['parser'])
             new_channel = self.get_channel()
             new_channel.exec_command(Template(TAIL_COMMAND).substitute(file=file['path']))
             self.channels[hashlib.sha1(label).hexdigest()] = {

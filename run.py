@@ -73,7 +73,6 @@ class LogHandler(tornado.websocket.WebSocketHandler):
         return self.application.config
     
     def open(self, host_name):
-        print "WebSocket opened for %s" % host_name
         self.host_name = host_name
         self.lines = multiprocessing.Queue()
         self.new_connection()
@@ -95,7 +94,6 @@ class LogHandler(tornado.websocket.WebSocketHandler):
         self.write_message(message)
     
     def on_close(self):
-        print "WebSocket closed"
         if hasattr(self, 'producer') and self.producer is not None:
             self.producer.terminate()
     

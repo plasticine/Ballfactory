@@ -1,226 +1,134 @@
 (function() {
-  var Amazeballs, Ball, DebugView, Draw, Socket, World;
+  var Engine, Remotes, Viewport;
   var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
-  Amazeballs = (function() {
-    function Amazeballs() {
-      this.createSockets = __bind(this.createSockets, this);;
-      this.newBall_right = __bind(this.newBall_right, this);;
-      this.newBall_left = __bind(this.newBall_left, this);;      var self;
-      this.canvas = $('#canvas');
-      this.balls = [];
-      this.draw = new Draw(this);
-      this.world = new World(this);
-      this.createSockets();
-      self = this;
-      this.debugView = new DebugView(this);
-      this.colours = ['#F9E4AD', '#E6B098', '#CC4452', '#723147', '#31152B'];
-      this.loop = window.setInterval((function() {
-        return self.draw.update();
-      }), 1000 / 40);
+  Engine = (function() {
+    function Engine() {
+      this.physicsMessage = __bind(this.physicsMessage, this);;      this.drawables = [];
+      this.remotes = new Remotes(this);
+      this.viewport = new Viewport(this);
+      this.physics = new Worker('/static/scripts/physics.js');
+      this.physics.onmessage = this.physicsMessage;
+      this.physics.onerror = this.physicsError;
+      this.physics.postMessage(JSON.stringify({
+        'action': 'start'
+      }));
     }
-    Amazeballs.prototype.rand = function(from, to) {
-      return Math.floor(Math.random() * (to - from + 1) + from);
+    Engine.prototype.physicsMessage = function(event) {
+      var message;
+      message = JSON.parse(event.data);
+      switch (message.action) {
+        case 'fps':
+          return $('.physics-fps span', '#debug').html("" + message.fps);
+        case 'state':
+          this.drawables = message.state;
+          return $('.objects span', '#debug').html("" + this.drawables.length);
+      }
     };
-    Amazeballs.prototype.newBall_left = function() {
-      var ball, radius, x;
-      x = 0;
-      radius = this.rand(3, 10) * 0.1;
-      ball = new Ball(this, radius, x, 1, [10, 0], {
-        'colour': this.colours[this.rand(0, 4)]
-      });
-      return this.balls.push(ball);
+    Engine.prototype.physicsError = function(event) {
+      return console.log('physicsError:', event);
     };
-    Amazeballs.prototype.newBall_right = function() {
-      var ball, radius, x;
-      x = 29;
-      radius = this.rand(3, 10) * 0.1;
-      ball = new Ball(this, radius, x, 1, [-10, 0], {
-        'colour': this.colours[this.rand(0, 4)]
-      });
-      return this.balls.push(ball);
-    };
-    Amazeballs.prototype.createSockets = function() {
-      var self;
-      self = this;
-      return jQuery.each(jQuery.parseJSON($('#hosts').text()), function(index, host) {
-        return self.socket = new Socket(self, "" + host);
-      });
-    };
-    return Amazeballs;
+    return Engine;
   })();
-  Socket = (function() {
-    function Socket(parent, host) {
-      var self;
+  Remotes = (function() {
+    function Remotes(parent) {
       this.parent = parent;
-      this.host = host;
-      this.handleData = __bind(this.handleData, this);;
+      this.onclose = __bind(this.onclose, this);;
+      this.onopen = __bind(this.onopen, this);;
+      this.onmessage = __bind(this.onmessage, this);;
       this.close = __bind(this.close, this);;
-      this.send = __bind(this.send, this);;
-      self = this;
+      this.open = __bind(this.open, this);;
       this.requests = 0;
-      this.host = this.host;
-      this.parent = this.parent;
-      this.socket = new WebSocket("ws://localhost:8888" + this.host);
-      this.socket.onopen = function() {
-        return this.send('{"connection":true,"connection_type":"client"}');
-      };
-      this.socket.onmessage = function(event) {
-        return self.handleData(event.data);
-      };
-      this.socket.onclose = function() {
-        return console.log('onclose');
-      };
-      this.socket.onopen = function() {
-        return console.log('onopen');
-      };
+      this.hosts = [];
+      $.each(JSON.parse($('#hosts').text()), __bind(function(index, host) {
+        return this.open(host);
+      }, this));
     }
-    Socket.prototype.send = function(message) {
-      message = jQuery.parseJSON(message);
-      return this.socket.send(message);
+    Remotes.prototype.open = function(host) {
+      this.hosts[host] = new WebSocket("ws://localhost:8888" + host);
+      this.hosts[host].onmessage = this.onmessage;
+      this.hosts[host].onclose = this.onclose;
+      return this.hosts[host].onopen = this.onopen;
     };
-    Socket.prototype.close = function() {
-      return this.socket.close();
+    Remotes.prototype.close = function() {
+      return $.each(this.hosts, __bind(function(index, host) {
+        return host.close();
+      }, this));
     };
-    Socket.prototype.handleData = function(data) {
-      this.requests += 1;
-      $('#debug .requests').html("" + this.requests + " requests");
-      data = jQuery.parseJSON(data);
-      console.log(data);
-      return this.parent.newBall_left();
+    Remotes.prototype.onmessage = function(event) {
+      var data;
+      data = JSON.parse(event.data);
+      this.requests++;
+      return $('.requests span', '#debug').html("" + this.requests);
     };
-    return Socket;
+    Remotes.prototype.onopen = function() {};
+    Remotes.prototype.onclose = function() {};
+    return Remotes;
   })();
-  World = (function() {
-    function World(parent) {
+  Viewport = (function() {
+    function Viewport(parent) {
       this.parent = parent;
-      this.create();
+      this.fps = __bind(this.fps, this);;
+      this.stepViewport = __bind(this.stepViewport, this);;
+      this.loop = __bind(this.loop, this);;
+      this.canvas = $('canvas#viewport');
+      this.context = this.canvas[0].getContext("2d");
+      this.viewportScale = 20;
+      this.width = 0;
+      this.height = 0;
+      this.loopTimer = false;
+      this.framerateTimer = false;
+      this.fpsActual = 0;
+      this.frames = 0;
+      this.lastUpdate = 0;
+      this.fps();
+      this.loop();
     }
-    World.prototype.add = function(object) {};
-    World.prototype.create = function() {
-      var bodyDef, fixDef;
-      this.gravity = new Box2D.Common.Math.b2Vec2(0, 10);
-      this.world = new Box2D.Dynamics.b2World(this.gravity, true);
-      fixDef = new Box2D.Dynamics.b2FixtureDef;
-      bodyDef = new Box2D.Dynamics.b2BodyDef;
-      bodyDef.type = Box2D.Dynamics.b2Body.b2_staticBody;
-      fixDef.shape = new Box2D.Collision.Shapes.b2PolygonShape;
-      fixDef.shape.SetAsBox(30, 0.033);
-      bodyDef.position.Set(0, 25);
-      this.world.CreateBody(bodyDef).CreateFixture(fixDef);
-      bodyDef.position.Set(0, 0);
-      this.world.CreateBody(bodyDef).CreateFixture(fixDef);
-      fixDef.shape.SetAsBox(0.033, 30);
-      bodyDef.position.Set(0, 13);
-      this.world.CreateBody(bodyDef).CreateFixture(fixDef);
-      bodyDef.position.Set(30, 0);
-      return this.world.CreateBody(bodyDef).CreateFixture(fixDef);
+    Viewport.prototype.loop = function() {
+      var delta, now;
+      now = new Date().getTime();
+      delta = (now - this.lastUpdate) / 1000;
+      this.lastUpdate = now;
+      this.stepViewport();
+      this.frames++;
+      return this.loopTimer = setTimeout((__bind(function() {
+        return this.loop();
+      }, this)), 1000 / 32);
     };
-    return World;
-  })();
-  Draw = (function() {
-    function Draw(parent) {
-      this.parent = parent;
-      this.lastTime = new Date();
-      this.timeStep = 1 / 30;
-      this.frameCount = 0;
-      this.fps = 0;
-      this.context = this.parent.canvas[0].getContext("2d");
-    }
-    Draw.prototype.updateFps = function() {
-      var now;
-      now = new Date();
-      if (Math.ceil(now.getTime() - this.lastTime.getTime()) >= 1000) {
-        this.fps = this.frameCount;
-        this.frameCount = 0.0;
-        this.lastTime = now;
-      }
-      this.frameCount++;
-      return $('#debug .fps').html("" + this.fps + " fps");
+    Viewport.prototype.scale = function(qty) {
+      return qty * this.viewportScale;
     };
-    Draw.prototype.update = function() {
-      console.log('Draw.update()');
-      this.updateFps();
-      this.parent.world.world.Step(this.timeStep, 10, 10);
-      this.parent.world.world.ClearForces();
-      return this.drawWorld(this.parent.world.world, this.context);
-    };
-    Draw.prototype.drawWorld = function(world, context) {
-      context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-      for (var body = world.m_bodyList; body; body = body.m_next) {
-            for (var fixture = body.m_fixtureList; fixture != null; fixture = fixture.m_next) {
-                this.drawShape(fixture, context);
-            }
-        };
-      return false;
-    };
-    Draw.prototype.drawShape = function(fixture, context) {
-      var position, radius, userData;
-      if (fixture.m_shape.m_radius) {
-        userData = fixture.m_body.GetUserData();
-        position = fixture.m_body.GetPosition();
-        radius = fixture.m_shape.m_radius * 30;
-        context.beginPath();
-        if (userData && userData['colour']) {
-          context.fillStyle = userData['colour'];
+    Viewport.prototype.stepViewport = function() {
+      var drawable, height, width, _i, _len, _ref, _results;
+      this.context.clearRect(0, 0, this.canvas.width(), this.canvas.height());
+      _ref = this.parent.drawables;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        drawable = _ref[_i];
+        this.context.beginPath();
+        switch (drawable.shape.type) {
+          case 'polygon':
+            width = (Math.abs(drawable.shape.vertices[0].x) + Math.abs(drawable.shape.vertices[1].x)) * this.viewportScale;
+            height = (Math.abs(drawable.shape.vertices[1].y) + Math.abs(drawable.shape.vertices[2].y)) * this.viewportScale;
+            this.context.fillRect(drawable.position.x * this.viewportScale, drawable.position.y * this.viewportScale, width, height);
+            break;
+          case 'circle':
+            this.context.arc(this.scale(drawable.position.x), this.scale(drawable.position.y), this.scale(drawable.shape.radius), 0, Math.PI * 2, false);
         }
-        context.arc(position.x * 30, position.y * 30, radius, 0, Math.PI * 2, false);
-        context.fill();
-        return context.moveTo(position.x * 30, position.y * 30);
+        _results.push(this.context.fill());
       }
+      return _results;
     };
-    return Draw;
-  })();
-  Ball = (function() {
-    function Ball(parent, radius, x, y, velocity, userdata) {
-      var self;
-      this.parent = parent;
-      this.radius = radius;
-      this.x = x;
-      this.y = y;
-      this.velocity = velocity;
-      this.userdata = userdata;
-      self = this;
-      this.create();
-      window.setInterval((function() {
-        return self.destroy();
-      }), 15000);
-    }
-    Ball.prototype.destroy = function() {
-      return this.parent.world.world.DestroyBody(this.body.m_body);
+    Viewport.prototype.fps = function() {
+      this.fpsActual = this.frames;
+      this.frames = 0;
+      $('.viewport-fps span', '#debug').html("" + this.fpsActual);
+      return this.framerateTimer = setTimeout((__bind(function() {
+        return this.fps();
+      }, this)), 1000);
     };
-    Ball.prototype.create = function() {
-      var bodyDef, fixDef;
-      fixDef = new Box2D.Dynamics.b2FixtureDef();
-      fixDef.density = 1.0;
-      fixDef.friction = 0.20;
-      fixDef.restitution = 0.4;
-      bodyDef = new Box2D.Dynamics.b2BodyDef();
-      bodyDef.type = Box2D.Dynamics.b2Body.b2_dynamicBody;
-      fixDef.shape = new Box2D.Collision.Shapes.b2CircleShape(this.radius);
-      bodyDef.position.x = this.x;
-      bodyDef.position.y = this.y;
-      bodyDef.linearVelocity = new Box2D.Common.Math.b2Vec2(this.velocity[0], this.velocity[1]);
-      bodyDef.userData = this.userdata;
-      return this.body = this.parent.world.world.CreateBody(bodyDef).CreateFixture(fixDef);
-    };
-    return Ball;
+    return Viewport;
   })();
-  DebugView = (function() {
-    function DebugView(parent) {
-      this.parent = parent;
-      console.log('DebugView.constructor()');
-      this.debugDraw = new Box2D.Dynamics.b2DebugDraw();
-      this.debugDraw.SetSprite(this.parent.canvas[0].getContext("2d"));
-      this.debugDraw.SetDrawScale(30.0);
-      this.debugDraw.SetFillAlpha(0.5);
-      this.debugDraw.SetLineThickness(5.0);
-      this.debugDraw.SetFlags(Box2D.Dynamics.b2DebugDraw.e_shapeBit | Box2D.Dynamics.b2DebugDraw.e_jointBit);
-      this.parent.world.world.SetDebugDraw(this.debugDraw);
-    }
-    return DebugView;
-  })();
-  $(function() {
-    var surface;
-    return surface = new Amazeballs();
+  jQuery(function() {
+    return window.engine = new Engine();
   });
 }).call(this);

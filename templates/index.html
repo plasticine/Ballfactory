@@ -6,17 +6,18 @@
     <link rel="stylesheet" href="{{ static_url('styles/styles.css') }}" type="text/css" media="screen" title="no title" charset="utf-8">
 </head>
 <body>
+    <canvas id="viewport" width="750" height="500"></canvas>
     <div id="debug">
         <ul>
-            <li class="fps">-</li>
-            <li class="requests">-</li>
+            <li class="viewport-fps">viewport fps: <span>--</span></li>
+            <li class="physics-fps">physics fps: <span>--</span></li>
+            <li class=" ">socket reqs: <span>--</span></li>
+            <li class="objects">drawable objects: <span>--</span></li>
         </ul>
     </div>
-    <canvas id="canvas" width="900" height="750"></canvas>
-    
     <script id="hosts" type="application/json">{{ json_encode(hosts) }}</script>
-    <script src="{{ static_url('scripts/jquery.js') }}" type="text/javascript" charset="utf-8"></script>
-    <script src="{{ static_url('scripts/Box2dWeb-2.1a.2.js.js') }}" type="text/javascript" charset="utf-8"></script>
+    <script src="{{ static_url('scripts/json2.js') }}" type="text/javascript" charset="utf-8"></script>
+    <script src="{{ static_url('scripts/jquery.min.js') }}" type="text/javascript" charset="utf-8"></script>
     <script src="{{ static_url('scripts/main.js') }}" type="text/javascript" charset="utf-8"></script>
 </body>
 </html>

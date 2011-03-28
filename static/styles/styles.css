@@ -1,25 +1,19 @@
 body{
     margin:0;
-    padding:0;
-    background-color:#222;
+    padding:20px;
 }
-#canvas{
-    position:absolute;
-    top:0;
-    left:0;
-    background-color:#222;
+canvas#viewport{
+    float:left;
+    border:1px solid #333;
 }
 #debug{
-    color:white;
-    position:absolute;
-    top:10px;
-    left:10px;
-    z-index:2;
-    font-size:10px;
+    color:#fff;
+    float:left;
+    font-size:11px;
     font-family: helvetica, Arial, "MS Trebuchet", sans-serif;
-    text-transform:uppercase;
-    margin:0;
-    padding:0;
+    margin:0 0 0 20px;
+    padding:10px;
+    background-color:#333;
 }
 #debug ul{
     list-style: none;
@@ -27,5 +21,16 @@ body{
     margin:0;
 }
 #debug li{
-    
+    margin:0 0 5px 0;
+    width:125px;
+    position:relative;
+}
+#debug li:last-child{
+    margin:0;
+}
+#debug li span{
+    position:absolute;
+    display:block;
+    right:0;
+    top:0;
 }
