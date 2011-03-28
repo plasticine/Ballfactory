@@ -22,21 +22,32 @@ class PhysicsWorker
         this.fps()
         this.loop()
         
+        ### Testing
+        ################################
         this.addBall(20)
         this.addBall(10)
+        this.addBall(36)
+        this.addBall(20)
+        this.addBall(14)
+        this.addBall(10)
+        this.addBall(28)
         this.addBall(28)
         this.addBall(48)
+        this.addBall(4)
         this.addBall(34)
         this.addBall(23)
         this.addBall(36)
         this.addBall(20)
         this.addBall(10)
         this.addBall(28)
+        this.addBall(5)
         this.addBall(48)
+        this.addBall(7)
         this.addBall(36)
         this.addBall(20)
         this.addBall(10)
         this.addBall(28)
+        ################################
     
     initWorld: =>
         this.world = new b2World(new b2Vec2(0.0, 9.81), true)
@@ -46,23 +57,23 @@ class PhysicsWorker
         wall = new b2PolygonShape()
         wallBody = new b2BodyDef()
         
-        wall.SetAsBox((1 / @physicsScale), (500 / @physicsScale))
+        wall.SetAsBox((1 / @physicsScale), (600 / @physicsScale))
         # Left
         wallBody.position.Set((0 / @physicsScale), (0 / @physicsScale))
         @walls['left'] = @world.CreateBody(wallBody)
         @walls['left'].CreateFixture2(wall)
         # Right
-        wallBody.position.Set((748 / @physicsScale), (0 / @physicsScale))
+        wallBody.position.Set((848 / @physicsScale), (0 / @physicsScale))
         @walls['right'] = @world.CreateBody(wallBody)
         @walls['right'].CreateFixture2(wall)
         
-        wall.SetAsBox((750 / @physicsScale), (1 / @physicsScale))
+        wall.SetAsBox((850 / @physicsScale), (1 / @physicsScale))
         # Top
         # wallBody.position.Set((0 / @physicsScale), (0 / @physicsScale))
         # @walls['top'] = @world.CreateBody(wallBody)
         # @walls['top'].CreateFixture2(wall)
         # Bottom
-        wallBody.position.Set((0 / @physicsScale), (498 / @physicsScale))
+        wallBody.position.Set((0 / @physicsScale), (598 / @physicsScale))
         @walls['bottom'] = @world.CreateBody(wallBody)
         @walls['bottom'].CreateFixture2(wall)
     
