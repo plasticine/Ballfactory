@@ -26,6 +26,16 @@ class Config(object):
             raise ConfigNotFound('Config file could not be found: %s' % (self.config_file))
         
         self.config = ConfigObj(self.config_file)
+        if 'colours' in self.config:
+            for key, colour in self.config['colours'].items():
+                self.config['colours'][key] = self.hex_to_rgb(colour)
+        else:
+            self.config['colours'] = {'page': (249, 228, 173), 'image': (230, 176, 152), 'javascript': (49, 21, 43), 'css': (204, 68, 82), 'other': (114, 49, 71)}
     
     def __getitem__(self, key):
         return self.config.get(key)
+    
+    def hex_to_rgb(self, colour):
+        colour = colour.lstrip('#')
+        lv = len(colour)
+        return tuple(int(colour[i:i+lv/3], 16) for i in range(0, lv, lv/3))

@@ -8,6 +8,7 @@ PhysicsWorker = (function() {
     this.updateState = __bind(this.updateState, this);;
     this.fps = __bind(this.fps, this);;
     this.addBall = __bind(this.addBall, this);;
+    this.add = __bind(this.add, this);;
     this.buildWorld = __bind(this.buildWorld, this);;
     this.initWorld = __bind(this.initWorld, this);;    this.state = false;
     this.world = false;
@@ -28,35 +29,6 @@ PhysicsWorker = (function() {
     this.updateState();
     this.fps();
     this.loop();
-    /* Testing
-    */
-    this.addBall(20);
-    this.addBall(10);
-    this.addBall(16);
-    this.addBall(20);
-    this.addBall(14);
-    this.addBall(10);
-    this.addBall(4);
-    this.addBall(4);
-    this.addBall(2);
-    this.addBall(9);
-    this.addBall(28);
-    this.addBall(38);
-    this.addBall(18);
-    this.addBall(4);
-    this.addBall(34);
-    this.addBall(23);
-    this.addBall(36);
-    this.addBall(20);
-    this.addBall(10);
-    this.addBall(28);
-    this.addBall(5);
-    this.addBall(38);
-    this.addBall(7);
-    this.addBall(26);
-    this.addBall(20);
-    this.addBall(10);
-    this.addBall(28);
   }
   PhysicsWorker.prototype.initWorld = function() {
     this.world = new b2World(new b2Vec2(0.0, 9.81), true);
@@ -66,19 +38,28 @@ PhysicsWorker = (function() {
     var wall, wallBody;
     wall = new b2PolygonShape();
     wallBody = new b2BodyDef();
-    wall.SetAsBox(1 / this.physicsScale, 600 / this.physicsScale);
+    wall.SetAsBox(0.5 / this.physicsScale, 600 / this.physicsScale);
     wallBody.position.Set(0 / this.physicsScale, 0 / this.physicsScale);
     this.walls['left'] = this.world.CreateBody(wallBody);
     this.walls['left'].CreateFixture2(wall);
-    wallBody.position.Set(848 / this.physicsScale, 0 / this.physicsScale);
+    wallBody.position.Set(850 / this.physicsScale, 0 / this.physicsScale);
     this.walls['right'] = this.world.CreateBody(wallBody);
     this.walls['right'].CreateFixture2(wall);
-    wall.SetAsBox(850 / this.physicsScale, 1 / this.physicsScale);
-    wallBody.position.Set(0 / this.physicsScale, 598 / this.physicsScale);
+    wall.SetAsBox(850 / this.physicsScale, 0.5 / this.physicsScale);
+    wallBody.position.Set(0 / this.physicsScale, 600 / this.physicsScale);
     this.walls['bottom'] = this.world.CreateBody(wallBody);
     return this.walls['bottom'].CreateFixture2(wall);
   };
-  PhysicsWorker.prototype.addBall = function(radius) {
+  PhysicsWorker.prototype.add = function(balls) {
+    var ball, _i, _len, _results;
+    _results = [];
+    for (_i = 0, _len = balls.length; _i < _len; _i++) {
+      ball = balls[_i];
+      _results.push(this.addBall(ball.radius, ball.colour));
+    }
+    return _results;
+  };
+  PhysicsWorker.prototype.addBall = function(radius, colour) {
     var ball, ballBody, fixture, x;
     fixture = new b2FixtureDef();
     fixture.shape = new b2CircleShape(radius / this.physicsScale);
@@ -90,6 +71,7 @@ PhysicsWorker = (function() {
     x = (750 / 2) - radius / 2;
     ballBody.position.Set(x / this.physicsScale, (-100 / this.physicsScale) * (Math.random()));
     ball = this.world.CreateBody(ballBody);
+    ball.SetUserData(colour);
     return ball.CreateFixture(fixture);
   };
   PhysicsWorker.prototype.fps = function() {
@@ -111,7 +93,8 @@ PhysicsWorker = (function() {
       _body = {};
       _body.position = body.GetPosition();
       _body.angle = body.GetAngle();
-      _body.type = this.bodyTypes[body.GetType()];
+      _body.colour = body.GetUserData();
+      _body.bodytype = this.bodyTypes[body.GetType()];
       _body.shape = {};
       fixture = body.GetFixtureList();
       while (fixture !== null) {
@@ -163,6 +146,6 @@ onmessage = function(event) {
     case 'start':
       return worker = new PhysicsWorker();
     case 'add':
-      return worker.add(event.data.objects);
+      return worker.add(message.balls);
   }
 };

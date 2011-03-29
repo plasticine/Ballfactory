@@ -10,14 +10,40 @@
   };
   Engine = (function() {
     function Engine() {
+      this.getRandom = __bind(this.getRandom, this);;
+      this.getColour = __bind(this.getColour, this);;
       this.physicsMessage = __bind(this.physicsMessage, this);;      this.drawables = [];
+      this.colours = JSON.parse($('#colours').text());
+      console.log(this.colours);
       this.remotes = new Remotes(this);
+      this.viewport = false;
       this.viewport = new WebGLViewport(this);
       this.physics = new Worker('/static/scripts/physics.js');
       this.physics.onmessage = this.physicsMessage;
       this.physics.onerror = this.physicsError;
       this.physics.postMessage(JSON.stringify({
         'action': 'start'
+      }));
+      this.physics.postMessage(JSON.stringify({
+        'action': 'add',
+        'balls': [
+          {
+            'radius': 10,
+            'colour': this.getColour('css')
+          }, {
+            'radius': 15,
+            'colour': this.getColour('image')
+          }, {
+            'radius': 12,
+            'colour': this.getColour('javascript')
+          }, {
+            'radius': 9,
+            'colour': this.getColour('other')
+          }, {
+            'radius': 14,
+            'colour': this.getColour('page')
+          }
+        ]
       }));
     }
     Engine.prototype.physicsMessage = function(event) {
@@ -33,6 +59,12 @@
     };
     Engine.prototype.physicsError = function(event) {
       return console.log('physicsError:', event);
+    };
+    Engine.prototype.getColour = function(type) {
+      return this.colours[type];
+    };
+    Engine.prototype.getRandom = function(array) {
+      return array[Math.floor(Math.random() * array.length)];
     };
     return Engine;
   })();
@@ -269,11 +301,14 @@
       width = this.canvas.width();
       height = this.canvas.height();
       this.gl.viewport(0, 0, width, height);
-      mat3.ortho2D(this.pMatrix, width, 0, height, 0);
+      mat3.ortho2D(this.pMatrix, 0, width, height, 0);
       return this.setPMatrixUniform();
     };
-    WebGLViewport.prototype.setColour = function(r, g, b) {
-      return this.gl.uniform4f(this.shaderProgram.glColorUniform, r, g, b, 1.0);
+    WebGLViewport.prototype.setColour = function(rgb) {
+      if (!rgb || rgb.length !== 3) {
+        rgb = [0, 0, 0];
+      }
+      return this.gl.uniform4f(this.shaderProgram.glColorUniform, parseFloat(rgb[0] / 255.0), parseFloat(rgb[1] / 255.0), parseFloat(rgb[2] / 255.0), 1.0);
     };
     WebGLViewport.prototype.drawBox = function(x, y, width, height, angle, colour) {
       mat3.identity(this.mvMatrix);
@@ -282,8 +317,8 @@
       mat3.scale(this.mvMatrix, this.scale(width), this.scale(height));
       this.setMVMatrixUniform();
       this.boxShapeVbo.bind();
-      this.setColour(0.0, 0.0, 0.0);
-      return this.boxShapeVbo.fill();
+      this.setColour(colour);
+      return this.boxShapeVbo;
     };
     WebGLViewport.prototype.drawCircle = function(x, y, radius, colour) {
       mat3.identity(this.mvMatrix);
@@ -291,8 +326,8 @@
       mat3.scale(this.mvMatrix, this.scale(radius), this.scale(radius));
       this.setMVMatrixUniform();
       this.circleShapeVbo.bind();
-      this.setColour(0.0, 0.0, 0.0);
-      return this.circleShapeVbo.stroke();
+      this.setColour(colour);
+      return this.circleShapeVbo;
     };
     WebGLViewport.prototype.draw = function() {
       var drawable, height, width, _i, _len, _ref, _results;
@@ -306,9 +341,9 @@
             case 'polygon':
               width = Math.abs(drawable.shape.vertices[0].x) + Math.abs(drawable.shape.vertices[1].x);
               height = Math.abs(drawable.shape.vertices[1].y) + Math.abs(drawable.shape.vertices[2].y);
-              return this.drawBox(drawable.position.x, drawable.position.y, width, height, drawable.angle, [0, 0, 0]);
+              return this.drawBox(drawable.position.x, drawable.position.y, width, height, drawable.angle).fill();
             case 'circle':
-              return this.drawCircle(drawable.position.x, drawable.position.y, drawable.shape.radius, [0, 0, 0]);
+              return this.drawCircle(drawable.position.x, drawable.position.y, drawable.shape.radius, drawable.colour).fill();
           }
         }).call(this));
       }

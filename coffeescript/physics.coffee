@@ -21,37 +21,6 @@ class PhysicsWorker
         this.updateState()
         this.fps()
         this.loop()
-        
-        ### Testing
-        ################################
-        this.addBall(20)
-        this.addBall(10)
-        this.addBall(16)
-        this.addBall(20)
-        this.addBall(14)
-        this.addBall(10)
-        this.addBall(4)
-        this.addBall(4)
-        this.addBall(2)
-        this.addBall(9)
-        this.addBall(28)
-        this.addBall(38)
-        this.addBall(18)
-        this.addBall(4)
-        this.addBall(34)
-        this.addBall(23)
-        this.addBall(36)
-        this.addBall(20)
-        this.addBall(10)
-        this.addBall(28)
-        this.addBall(5)
-        this.addBall(38)
-        this.addBall(7)
-        this.addBall(26)
-        this.addBall(20)
-        this.addBall(10)
-        this.addBall(28)
-        ################################
     
     initWorld: =>
         this.world = new b2World(new b2Vec2(0.0, 9.81), true)
@@ -61,27 +30,31 @@ class PhysicsWorker
         wall = new b2PolygonShape()
         wallBody = new b2BodyDef()
         
-        wall.SetAsBox((1 / @physicsScale), (600 / @physicsScale))
+        wall.SetAsBox((0.5 / @physicsScale), (600 / @physicsScale))
         # Left
         wallBody.position.Set((0 / @physicsScale), (0 / @physicsScale))
         @walls['left'] = @world.CreateBody(wallBody)
         @walls['left'].CreateFixture2(wall)
         # Right
-        wallBody.position.Set((848 / @physicsScale), (0 / @physicsScale))
+        wallBody.position.Set((850 / @physicsScale), (0 / @physicsScale))
         @walls['right'] = @world.CreateBody(wallBody)
         @walls['right'].CreateFixture2(wall)
         
-        wall.SetAsBox((850 / @physicsScale), (1 / @physicsScale))
+        wall.SetAsBox((850 / @physicsScale), (0.5 / @physicsScale))
         # Top
         # wallBody.position.Set((0 / @physicsScale), (0 / @physicsScale))
         # @walls['top'] = @world.CreateBody(wallBody)
         # @walls['top'].CreateFixture2(wall)
         # Bottom
-        wallBody.position.Set((0 / @physicsScale), (598 / @physicsScale))
+        wallBody.position.Set((0 / @physicsScale), (600 / @physicsScale))
         @walls['bottom'] = @world.CreateBody(wallBody)
         @walls['bottom'].CreateFixture2(wall)
     
-    addBall: (radius) =>
+    add: (balls) =>
+        for ball in balls
+            this.addBall(ball.radius, ball.colour)
+    
+    addBall: (radius, colour) =>
         fixture = new b2FixtureDef()
         fixture.shape = new b2CircleShape(radius / @physicsScale);
         fixture.friction = 0.45;
@@ -92,6 +65,7 @@ class PhysicsWorker
         x = (750 / 2) - radius/2
         ballBody.position.Set((x / @physicsScale), (-100 / @physicsScale) * (Math.random()))
         ball = @world.CreateBody(ballBody)
+        ball.SetUserData(colour)
         ball.CreateFixture(fixture)
     
     fps: =>
@@ -110,7 +84,8 @@ class PhysicsWorker
             _body = {}
             _body.position = body.GetPosition()
             _body.angle = body.GetAngle()
-            _body.type = @bodyTypes[body.GetType()]
+            _body.colour = body.GetUserData()
+            _body.bodytype = @bodyTypes[body.GetType()]
             _body.shape = {}
             fixture = body.GetFixtureList()
             while fixture != null
@@ -153,4 +128,4 @@ onmessage = (event) ->
         when 'start'
             worker = new PhysicsWorker()
         when 'add'
-            worker.add(event.data.objects)
+            worker.add(message.balls)

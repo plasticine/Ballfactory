@@ -60,8 +60,9 @@ class BaseHandler(tornado.web.RequestHandler):
 
 class MainHandler(BaseHandler):
     def get(self):
+        colours = self.config['colours']
         hosts = [self.reverse_url('socket', key) for key in self.config['hosts'].keys()]
-        self.render('index.html', hosts=hosts)
+        self.render('index.html', hosts=hosts, colours=colours)
 
 
 class LogHandler(tornado.websocket.WebSocketHandler):

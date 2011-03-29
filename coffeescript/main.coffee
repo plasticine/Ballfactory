@@ -1,14 +1,28 @@
 class Engine
     constructor: ->
         this.drawables = []
+        this.colours = JSON.parse($('#colours').text())
+        console.log this.colours
         this.remotes = new Remotes(this)
-        # this.viewport = new CanvasViewport(this)
+        this.viewport = false
         this.viewport = new WebGLViewport(this)
+        # this.viewport = new CanvasViewport(this)
         this.physics = new Worker('/static/scripts/physics.js')
         this.physics.onmessage = this.physicsMessage
         this.physics.onerror = this.physicsError
         this.physics.postMessage(JSON.stringify({
             'action':'start'
+        }))
+        
+        this.physics.postMessage(JSON.stringify({
+            'action':'add',
+            'balls':[
+                {'radius':10, 'colour':this.getColour('css')},
+                {'radius':15, 'colour':this.getColour('image')},
+                {'radius':12, 'colour':this.getColour('javascript')},
+                {'radius':9, 'colour':this.getColour('other')},
+                {'radius':14, 'colour':this.getColour('page')}
+            ]
         }))
     
     physicsMessage: (event) =>
@@ -22,6 +36,12 @@ class Engine
     
     physicsError: (event) ->
         console.log 'physicsError:', event
+    
+    getColour: (type) =>
+        this.colours[type]
+    
+    getRandom: (array) =>
+        return array[Math.floor(Math.random() * array.length)]
 
 
 class Remotes
@@ -229,11 +249,18 @@ class WebGLViewport extends Viewport
         width = @canvas.width()
         height = @canvas.height()
         @gl.viewport(0, 0, width, height)
-        mat3.ortho2D(@pMatrix, width, 0, height, 0)
+        mat3.ortho2D(@pMatrix, 0, width, height, 0)
         this.setPMatrixUniform()
     
-    setColour: (r, g, b) =>
-        @gl.uniform4f(@shaderProgram.glColorUniform, r, g, b, 1.0)
+    setColour: (rgb) =>
+        rgb = [0,0,0] if not rgb or rgb.length != 3
+        @gl.uniform4f(
+            @shaderProgram.glColorUniform,
+            parseFloat(rgb[0]/255.0),
+            parseFloat(rgb[1]/255.0),
+            parseFloat(rgb[2]/255.0),
+            1.0
+        )
     
     drawBox: (x, y, width, height, angle, colour) =>
         mat3.identity(@mvMatrix)
@@ -242,8 +269,8 @@ class WebGLViewport extends Viewport
         mat3.scale(@mvMatrix, this.scale(width), this.scale(height));
         this.setMVMatrixUniform()
         @boxShapeVbo.bind()
-        this.setColour(0.0, 0.0, 0.0)
-        @boxShapeVbo.fill()
+        this.setColour(colour)
+        @boxShapeVbo
     
     drawCircle: (x, y, radius, colour) =>
         mat3.identity(@mvMatrix)
@@ -251,8 +278,8 @@ class WebGLViewport extends Viewport
         mat3.scale(@mvMatrix, this.scale(radius), this.scale(radius))
         this.setMVMatrixUniform()
         @circleShapeVbo.bind()
-        this.setColour(0.0, 0.0, 0.0)
-        @circleShapeVbo.stroke()
+        this.setColour(colour)
+        @circleShapeVbo
     
     draw: =>
         @gl.clear(@gl.COLOR_BUFFER_BIT)
@@ -266,16 +293,15 @@ class WebGLViewport extends Viewport
                         drawable.position.y,
                         width,
                         height,
-                        drawable.angle,
-                        [0, 0, 0]
-                    )
+                        drawable.angle
+                    ).fill()
                 when 'circle'
                     this.drawCircle(
                         drawable.position.x,
                         drawable.position.y,
                         drawable.shape.radius,
-                        [0, 0, 0]
-                    )
+                        drawable.colour
+                    ).fill()
 
 
 jQuery ->
