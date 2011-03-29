@@ -96,6 +96,7 @@ class LogHandler(tornado.websocket.WebSocketHandler):
     
     def on_close(self):
         if hasattr(self, 'producer') and self.producer is not None:
+            print 'closing! %s' % self.producer
             self.producer.terminate()
     
     def new_connection(self):
@@ -112,7 +113,7 @@ class LogHandler(tornado.websocket.WebSocketHandler):
                 'queue':self.lines,
             }
         )
-        # self.producer.start()
+        self.producer.start()
 
 
 def main():
