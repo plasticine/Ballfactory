@@ -111,7 +111,7 @@ class LogHandler(tornado.websocket.WebSocketHandler):
                 'queue':self.lines,
             }
         )
-        self.producer.start()
+        # self.producer.start()
 
 
 def main():
