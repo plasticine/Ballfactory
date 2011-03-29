@@ -11,41 +11,42 @@
   Engine = (function() {
     function Engine() {
       this.getRandom = __bind(this.getRandom, this);;
-      this.getColour = __bind(this.getColour, this);;
-      this.physicsMessage = __bind(this.physicsMessage, this);;      this.drawables = [];
+      this.getBallColour = __bind(this.getBallColour, this);;
+      this.getBallSize = __bind(this.getBallSize, this);;
+      this.addBallToWorker = __bind(this.addBallToWorker, this);;
+      this.handleRemoteRequest = __bind(this.handleRemoteRequest, this);;
+      this.physicsMessage = __bind(this.physicsMessage, this);;
+      this.calculateBallSizeRanges = __bind(this.calculateBallSizeRanges, this);;      this.drawables = [];
       this.colours = JSON.parse($('#colours').text());
-      console.log(this.colours);
       this.remotes = new Remotes(this);
       this.viewport = false;
       this.viewport = new WebGLViewport(this);
+      this.minBallSize = 10;
+      this.maxBallSize = 60;
+      this.minRequestBytes = 1024;
+      this.maxRequestBytes = 20 * 1024 * 1024;
+      this.ballSizeRanges = [];
       this.physics = new Worker('/static/scripts/physics.js');
       this.physics.onmessage = this.physicsMessage;
       this.physics.onerror = this.physicsError;
       this.physics.postMessage(JSON.stringify({
         'action': 'start'
       }));
-      this.physics.postMessage(JSON.stringify({
-        'action': 'add',
-        'balls': [
-          {
-            'radius': 10,
-            'colour': this.getColour('css')
-          }, {
-            'radius': 15,
-            'colour': this.getColour('image')
-          }, {
-            'radius': 12,
-            'colour': this.getColour('javascript')
-          }, {
-            'radius': 9,
-            'colour': this.getColour('other')
-          }, {
-            'radius': 14,
-            'colour': this.getColour('page')
-          }
-        ]
-      }));
+      this.calculateBallSizeRanges();
+      console.log(this.ballSizeRanges);
     }
+    Engine.prototype.calculateBallSizeRanges = function() {
+      var count, size, _results;
+      size = 0;
+      count = 0;
+      console.log(this.minRequestBytes / this.maxRequestBytes * 100);
+      _results = [];
+      while (size < this.maxRequestBytes) {
+        size = 1024 * (count++ * (this.ballSizeRanges.length * 2) + 1);
+        _results.push(this.ballSizeRanges.push(size));
+      }
+      return _results;
+    };
     Engine.prototype.physicsMessage = function(event) {
       var message;
       message = JSON.parse(event.data);
@@ -60,7 +61,39 @@
     Engine.prototype.physicsError = function(event) {
       return console.log('physicsError:', event);
     };
-    Engine.prototype.getColour = function(type) {
+    Engine.prototype.handleRemoteRequest = function(request) {
+      var colour, radius;
+      console.log(request);
+      radius = this.getBallSize(request.body_bytes_sent);
+      colour = this.getBallColour(request.type);
+      return this.addBallToWorker(radius, colour);
+    };
+    Engine.prototype.addBallToWorker = function(radius, colour) {
+      return this.physics.postMessage(JSON.stringify({
+        'action': 'add',
+        'balls': [
+          {
+            'radius': radius,
+            'colour': colour
+          }
+        ]
+      }));
+    };
+    Engine.prototype.getBallSize = function(size) {
+      var ballSize, percentOfMaxRequest;
+      console.log(size);
+      if (size === 0 || size < 1024) {
+        return this.minBallSize;
+      }
+      if (size >= this.maxRequestBytes) {
+        return this.maxBallSize;
+      }
+      percentOfMaxRequest = size / this.maxRequestBytes;
+      ballSize = this.maxBallSize * percentOfMaxRequest;
+      console.log(percentOfMaxRequest, ballSize);
+      return ballSize;
+    };
+    Engine.prototype.getBallColour = function(type) {
       return this.colours[type];
     };
     Engine.prototype.getRandom = function(array) {
@@ -94,10 +127,9 @@
       }, this));
     };
     Remotes.prototype.onmessage = function(event) {
-      var data;
-      data = JSON.parse(event.data);
       this.requests++;
-      return $('.requests span', '#debug').html("" + this.requests);
+      $('.requests span', '#debug').html("" + this.requests);
+      return this.parent.handleRemoteRequest(JSON.parse(event.data));
     };
     Remotes.prototype.onopen = function() {};
     Remotes.prototype.onclose = function() {};

@@ -2,28 +2,31 @@ class Engine
     constructor: ->
         this.drawables = []
         this.colours = JSON.parse($('#colours').text())
-        console.log this.colours
         this.remotes = new Remotes(this)
         this.viewport = false
         this.viewport = new WebGLViewport(this)
         # this.viewport = new CanvasViewport(this)
+        this.minBallSize = 10
+        this.maxBallSize = 60
+        this.minRequestBytes = 1024 # 1 kilobyte
+        this.maxRequestBytes = 20 * 1024 * 1024 # 20 megabytes
+        this.ballSizeRanges = []
         this.physics = new Worker('/static/scripts/physics.js')
         this.physics.onmessage = this.physicsMessage
         this.physics.onerror = this.physicsError
         this.physics.postMessage(JSON.stringify({
             'action':'start'
         }))
-        
-        this.physics.postMessage(JSON.stringify({
-            'action':'add',
-            'balls':[
-                {'radius':10, 'colour':this.getColour('css')},
-                {'radius':15, 'colour':this.getColour('image')},
-                {'radius':12, 'colour':this.getColour('javascript')},
-                {'radius':9, 'colour':this.getColour('other')},
-                {'radius':14, 'colour':this.getColour('page')}
-            ]
-        }))
+        this.calculateBallSizeRanges()
+        console.log @ballSizeRanges
+    
+    calculateBallSizeRanges: =>
+        size = 0
+        count = 0
+        console.log @minRequestBytes / @maxRequestBytes * 100
+        while size < @maxRequestBytes
+            size = 1024*(count++*(@ballSizeRanges.length*2)+1)
+            @ballSizeRanges.push(size)
     
     physicsMessage: (event) =>
         message = JSON.parse(event.data)
@@ -37,7 +40,33 @@ class Engine
     physicsError: (event) ->
         console.log 'physicsError:', event
     
-    getColour: (type) =>
+    handleRemoteRequest: (request) =>
+        console.log request
+        radius = this.getBallSize(request.body_bytes_sent)
+        colour = this.getBallColour(request.type)
+        this.addBallToWorker(radius, colour)
+    
+    addBallToWorker: (radius, colour) =>
+        this.physics.postMessage(JSON.stringify({
+            'action':'add',
+            'balls':[{
+                'radius':radius,
+                'colour':colour
+            }]
+        }))
+    
+    getBallSize: (size) =>
+        console.log size
+        if size == 0 or size < 1024
+            return @minBallSize
+        if size >= @maxRequestBytes
+            return @maxBallSize
+        percentOfMaxRequest = (size / @maxRequestBytes)
+        ballSize = @maxBallSize * percentOfMaxRequest
+        console.log percentOfMaxRequest, ballSize
+        return ballSize
+    
+    getBallColour: (type) =>
         this.colours[type]
     
     getRandom: (array) =>
@@ -61,9 +90,9 @@ class Remotes
         $.each @hosts, (index, host) =>
             host.close()
     onmessage: (event) =>
-        data = JSON.parse(event.data)
         this.requests++
         $('.requests span', '#debug').html("#{ this.requests }")
+        @parent.handleRemoteRequest(JSON.parse(event.data))
     
     onopen: =>
         # console.log 'onopen'
