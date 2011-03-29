@@ -32,13 +32,17 @@ PhysicsWorker = (function() {
     */
     this.addBall(20);
     this.addBall(10);
-    this.addBall(36);
+    this.addBall(16);
     this.addBall(20);
     this.addBall(14);
     this.addBall(10);
+    this.addBall(4);
+    this.addBall(4);
+    this.addBall(2);
+    this.addBall(9);
     this.addBall(28);
-    this.addBall(28);
-    this.addBall(48);
+    this.addBall(38);
+    this.addBall(18);
     this.addBall(4);
     this.addBall(34);
     this.addBall(23);
@@ -47,9 +51,9 @@ PhysicsWorker = (function() {
     this.addBall(10);
     this.addBall(28);
     this.addBall(5);
-    this.addBall(48);
+    this.addBall(38);
     this.addBall(7);
-    this.addBall(36);
+    this.addBall(26);
     this.addBall(20);
     this.addBall(10);
     this.addBall(28);
@@ -78,8 +82,8 @@ PhysicsWorker = (function() {
     var ball, ballBody, fixture, x;
     fixture = new b2FixtureDef();
     fixture.shape = new b2CircleShape(radius / this.physicsScale);
-    fixture.friction = 0.4;
-    fixture.restitution = 0.35;
+    fixture.friction = 0.45;
+    fixture.restitution = 0.5;
     fixture.density = 1.0;
     ballBody = new b2BodyDef();
     ballBody.type = b2Body.b2_dynamicBody;
