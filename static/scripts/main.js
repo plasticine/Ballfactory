@@ -15,16 +15,15 @@
       this.getBallSize = __bind(this.getBallSize, this);;
       this.addBallToWorker = __bind(this.addBallToWorker, this);;
       this.handleRemoteRequest = __bind(this.handleRemoteRequest, this);;
-      this.physicsMessage = __bind(this.physicsMessage, this);;
-      this.calculateBallSizeRanges = __bind(this.calculateBallSizeRanges, this);;      this.drawables = [];
+      this.physicsMessage = __bind(this.physicsMessage, this);;      this.drawables = [];
       this.colours = JSON.parse($('#colours').text());
       this.remotes = new Remotes(this);
       this.viewport = false;
       this.viewport = new WebGLViewport(this);
       this.minBallSize = 10;
-      this.maxBallSize = 60;
-      this.minRequestBytes = 1024;
-      this.maxRequestBytes = 20 * 1024 * 1024;
+      this.maxBallSize = 45;
+      this.minRequestSize = 1024;
+      this.maxRequestSize = 5 * 1024 * 1024;
       this.ballSizeRanges = [];
       this.physics = new Worker('/static/scripts/physics.js');
       this.physics.onmessage = this.physicsMessage;
@@ -32,27 +31,14 @@
       this.physics.postMessage(JSON.stringify({
         'action': 'start'
       }));
-      this.calculateBallSizeRanges();
-      console.log(this.ballSizeRanges);
     }
-    Engine.prototype.calculateBallSizeRanges = function() {
-      var count, size, _results;
-      size = 0;
-      count = 0;
-      console.log(this.minRequestBytes / this.maxRequestBytes * 100);
-      _results = [];
-      while (size < this.maxRequestBytes) {
-        size = 1024 * (count++ * (this.ballSizeRanges.length * 2) + 1);
-        _results.push(this.ballSizeRanges.push(size));
-      }
-      return _results;
-    };
     Engine.prototype.physicsMessage = function(event) {
       var message;
       message = JSON.parse(event.data);
       switch (message.action) {
-        case 'fps':
-          return $('.physics-fps span', '#debug').html("" + message.fps);
+        case 'update':
+          $('.physics-fps span', '#debug').html("" + message.fps);
+          return $('.ttl span', '#debug').html("" + (message.ttl / 1000) + "sec");
         case 'state':
           this.drawables = message.state;
           return $('.objects span', '#debug').html("" + this.drawables.length);
@@ -63,7 +49,6 @@
     };
     Engine.prototype.handleRemoteRequest = function(request) {
       var colour, radius;
-      console.log(request);
       radius = this.getBallSize(request.body_bytes_sent);
       colour = this.getBallColour(request.type);
       return this.addBallToWorker(radius, colour);
@@ -80,18 +65,10 @@
       }));
     };
     Engine.prototype.getBallSize = function(size) {
-      var ballSize, percentOfMaxRequest;
-      console.log(size);
-      if (size === 0 || size < 1024) {
-        return this.minBallSize;
-      }
-      if (size >= this.maxRequestBytes) {
-        return this.maxBallSize;
-      }
-      percentOfMaxRequest = size / this.maxRequestBytes;
-      ballSize = this.maxBallSize * percentOfMaxRequest;
-      console.log(percentOfMaxRequest, ballSize);
-      return ballSize;
+      var requestRange, sizeRange;
+      requestRange = this.maxRequestSize - this.minRequestSize;
+      sizeRange = this.maxBallSize - this.minBallSize;
+      return (((size - this.minRequestSize) * sizeRange) / requestRange) + this.minBallSize;
     };
     Engine.prototype.getBallColour = function(type) {
       return this.colours[type];
@@ -142,8 +119,8 @@
       this.scale = __bind(this.scale, this);;
       this.loop = __bind(this.loop, this);;
       this.canvas = $('canvas#viewport');
-      this.viewportScale = 20;
-      this.fpsTarget = 1000 / 50;
+      this.viewportScale = 15;
+      this.fpsTarget = 1000 / 60;
       this.width = 0;
       this.height = 0;
       this.loopTimer = false;
@@ -217,6 +194,7 @@
       this.drawCircle = __bind(this.drawCircle, this);;
       this.drawBox = __bind(this.drawBox, this);;
       this.setColour = __bind(this.setColour, this);;
+      this.convertColour = __bind(this.convertColour, this);;
       this.reshapeViewport = __bind(this.reshapeViewport, this);;
       this.initDraw = __bind(this.initDraw, this);;
       this.createShader = __bind(this.createShader, this);;
@@ -326,7 +304,9 @@
       return shader;
     };
     WebGLViewport.prototype.initDraw = function() {
-      return this.gl.clearColor(1.0, 1.0, 1.0, 1.0);
+      var rgb;
+      rgb = this.convertColour([20, 20, 20], 1.0);
+      return this.gl.clearColor(rgb[0], rgb[1], rgb[2], rgb[3]);
     };
     WebGLViewport.prototype.reshapeViewport = function() {
       var height, width;
@@ -336,11 +316,15 @@
       mat3.ortho2D(this.pMatrix, 0, width, height, 0);
       return this.setPMatrixUniform();
     };
+    WebGLViewport.prototype.convertColour = function(rgb, alpha) {
+      return [parseFloat(rgb[0] / 255.0), parseFloat(rgb[1] / 255.0), parseFloat(rgb[2] / 255.0), alpha];
+    };
     WebGLViewport.prototype.setColour = function(rgb) {
       if (!rgb || rgb.length !== 3) {
         rgb = [0, 0, 0];
       }
-      return this.gl.uniform4f(this.shaderProgram.glColorUniform, parseFloat(rgb[0] / 255.0), parseFloat(rgb[1] / 255.0), parseFloat(rgb[2] / 255.0), 1.0);
+      rgb = this.convertColour(rgb, 1.0);
+      return this.gl.uniform4f(this.shaderProgram.glColorUniform, rgb[0], rgb[1], rgb[2], rgb[3]);
     };
     WebGLViewport.prototype.drawBox = function(x, y, width, height, angle, colour) {
       mat3.identity(this.mvMatrix);

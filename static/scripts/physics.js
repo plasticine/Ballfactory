@@ -6,7 +6,9 @@ PhysicsWorker = (function() {
     this.stepWorld = __bind(this.stepWorld, this);;
     this.loop = __bind(this.loop, this);;
     this.updateState = __bind(this.updateState, this);;
+    this.checkTTL = __bind(this.checkTTL, this);;
     this.fps = __bind(this.fps, this);;
+    this.update = __bind(this.update, this);;
     this.addBall = __bind(this.addBall, this);;
     this.add = __bind(this.add, this);;
     this.buildWorld = __bind(this.buildWorld, this);;
@@ -16,18 +18,21 @@ PhysicsWorker = (function() {
     this.bodyTypes = ['static', 'kinematic', 'dynamic'];
     this.shapeTypes = ['circle', 'polygon'];
     this.loopTimer = false;
-    this.framerateTimer = false;
-    this.physicsScale = 20;
+    this.updateTimer = false;
+    this.physicsScale = 15;
+    this.ballMaxTTL = 10 * 60 * 1000;
+    this.ballTTL = 1000 * 1;
     this.velocityIterationsPerSecond = 300;
     this.positionIterationsPerSecond = 200;
-    this.fpsTarget = 200;
+    this.fpsTarget = 50;
     this.fpsActual = 0;
     this.frames = 0;
     this.lastUpdate = 0;
     this.initWorld();
     this.buildWorld();
     this.updateState();
-    this.fps();
+    this.checkTTL();
+    this.update();
     this.loop();
   }
   PhysicsWorker.prototype.initWorld = function() {
@@ -63,62 +68,98 @@ PhysicsWorker = (function() {
     var ball, ballBody, fixture, x;
     fixture = new b2FixtureDef();
     fixture.shape = new b2CircleShape(radius / this.physicsScale);
-    fixture.friction = 0.45;
-    fixture.restitution = 0.5;
-    fixture.density = 1.0;
+    fixture.friction = 0.5;
+    fixture.restitution = 0.35;
+    fixture.density = 10.0;
     ballBody = new b2BodyDef();
     ballBody.type = b2Body.b2_dynamicBody;
     x = (750 / 2) - radius / 2;
     ballBody.position.Set(x / this.physicsScale, (-100 / this.physicsScale) * (Math.random()));
     ball = this.world.CreateBody(ballBody);
-    ball.SetUserData(colour);
+    ball.SetUserData({
+      'colour': colour,
+      'spawn_time': new Date().getTime()
+    });
     return ball.CreateFixture(fixture);
+  };
+  PhysicsWorker.prototype.update = function() {
+    this.fps();
+    postMessage(JSON.stringify({
+      'action': 'update',
+      'fps': this.fpsActual,
+      'ttl': this.ballTTL
+    }));
+    return setTimeout((__bind(function() {
+      return this.update();
+    }, this)), 1000);
   };
   PhysicsWorker.prototype.fps = function() {
     this.fpsActual = this.frames;
-    this.frames = 0;
-    postMessage(JSON.stringify({
-      'action': 'fps',
-      'fps': this.fpsActual
-    }));
-    return this.framerateTimer = setTimeout((__bind(function() {
-      return this.fps();
-    }, this)), 1000);
+    return this.frames = 0;
+  };
+  PhysicsWorker.prototype.checkTTL = function() {
+    var delta;
+    if (this.fpsActual < 60 && this.ballTTL > 5000) {
+      delta = 100 * (60 - this.fpsActual);
+      if (delta < this.ballTTL) {
+        this.ballTTL -= delta;
+      } else if (delta < 0) {
+        this.ballTTL = 2500;
+      }
+    }
+    if (this.fpsActual > 60 && this.ballTTL < this.ballMaxTTL) {
+      this.ballTTL += 10 * (this.fpsActual - 60);
+    }
+    return setTimeout((__bind(function() {
+      return this.checkTTL();
+    }, this)), 100);
   };
   PhysicsWorker.prototype.updateState = function() {
-    var body, fixture, shape, _body;
+    var body, fixture, now, shape, user_data, _body;
     this.state = [];
+    now = new Date().getTime();
     body = this.world.GetBodyList();
     while (body !== null) {
-      _body = {};
-      _body.position = body.GetPosition();
-      _body.angle = body.GetAngle();
-      _body.colour = body.GetUserData();
-      _body.bodytype = this.bodyTypes[body.GetType()];
-      _body.shape = {};
-      fixture = body.GetFixtureList();
-      while (fixture !== null) {
-        shape = fixture.GetShape();
-        _body.shape.type = this.shapeTypes[shape.GetType()];
-        switch (_body.shape.type) {
-          case 'polygon':
-            _body.shape.vertices = shape.GetVertices();
-            break;
-          case 'circle':
-            _body.shape.radius = shape.GetRadius();
+      user_data = body.GetUserData();
+      if (user_data && (now - user_data['spawn_time']) > this.ballTTL) {
+        this.world.DestroyBody(body);
+      } else {
+        _body = {};
+        _body.position = body.GetPosition();
+        _body.angle = body.GetAngle();
+        if (user_data) {
+          _body.colour = user_data['colour'];
         }
-        fixture = fixture.GetNext();
+        _body.bodytype = this.bodyTypes[body.GetType()];
+        _body.shape = {};
+        fixture = body.GetFixtureList();
+        while (fixture !== null) {
+          shape = fixture.GetShape();
+          _body.shape.type = this.shapeTypes[shape.GetType()];
+          switch (_body.shape.type) {
+            case 'polygon':
+              _body.shape.vertices = shape.GetVertices();
+              break;
+            case 'circle':
+              _body.shape.radius = shape.GetRadius();
+          }
+          fixture = fixture.GetNext();
+        }
+        this.state.push(_body);
       }
-      this.state.push(_body);
       body = body.GetNext();
     }
-    return postMessage(JSON.stringify({
+    postMessage(JSON.stringify({
       'action': 'state',
       'state': this.state
     }));
+    return this.stateTimer = setTimeout((__bind(function() {
+      return this.updateState();
+    }, this)), 1000 / 30);
   };
   PhysicsWorker.prototype.loop = function() {
     var delta, now;
+    clearTimeout(this.loopTimer);
     now = new Date().getTime();
     delta = (now - this.lastUpdate) / 1000;
     this.lastUpdate = now;
@@ -126,7 +167,6 @@ PhysicsWorker = (function() {
       delta = 1 / this.fpsTarget;
     }
     this.stepWorld(delta);
-    this.updateState();
     this.frames++;
     return this.loopTimer = setTimeout((__bind(function() {
       return this.loop();

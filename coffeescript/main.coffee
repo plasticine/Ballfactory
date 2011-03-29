@@ -7,9 +7,9 @@ class Engine
         this.viewport = new WebGLViewport(this)
         # this.viewport = new CanvasViewport(this)
         this.minBallSize = 10
-        this.maxBallSize = 60
-        this.minRequestBytes = 1024 # 1 kilobyte
-        this.maxRequestBytes = 20 * 1024 * 1024 # 20 megabytes
+        this.maxBallSize = 45
+        this.minRequestSize = 1024 # 1 kilobyte
+        this.maxRequestSize = 5 * 1024 * 1024 # 5 megabytes
         this.ballSizeRanges = []
         this.physics = new Worker('/static/scripts/physics.js')
         this.physics.onmessage = this.physicsMessage
@@ -17,22 +17,13 @@ class Engine
         this.physics.postMessage(JSON.stringify({
             'action':'start'
         }))
-        this.calculateBallSizeRanges()
-        console.log @ballSizeRanges
-    
-    calculateBallSizeRanges: =>
-        size = 0
-        count = 0
-        console.log @minRequestBytes / @maxRequestBytes * 100
-        while size < @maxRequestBytes
-            size = 1024*(count++*(@ballSizeRanges.length*2)+1)
-            @ballSizeRanges.push(size)
     
     physicsMessage: (event) =>
         message = JSON.parse(event.data)
         switch message.action
-            when 'fps'
+            when 'update'
                 $('.physics-fps span', '#debug').html("#{ message.fps }")
+                $('.ttl span', '#debug').html("#{ message.ttl / 1000 }sec")
             when 'state'
                 @drawables = message.state
                 $('.objects span', '#debug').html("#{ @drawables.length }")
@@ -41,7 +32,6 @@ class Engine
         console.log 'physicsError:', event
     
     handleRemoteRequest: (request) =>
-        console.log request
         radius = this.getBallSize(request.body_bytes_sent)
         colour = this.getBallColour(request.type)
         this.addBallToWorker(radius, colour)
@@ -56,15 +46,9 @@ class Engine
         }))
     
     getBallSize: (size) =>
-        console.log size
-        if size == 0 or size < 1024
-            return @minBallSize
-        if size >= @maxRequestBytes
-            return @maxBallSize
-        percentOfMaxRequest = (size / @maxRequestBytes)
-        ballSize = @maxBallSize * percentOfMaxRequest
-        console.log percentOfMaxRequest, ballSize
-        return ballSize
+        requestRange = (@maxRequestSize - @minRequestSize)
+        sizeRange = (@maxBallSize - @minBallSize)
+        return (((size - @minRequestSize) * sizeRange) / requestRange) + @minBallSize
     
     getBallColour: (type) =>
         this.colours[type]
@@ -104,8 +88,8 @@ class Remotes
 class Viewport
     constructor: (@parent) ->
         this.canvas = $('canvas#viewport')
-        this.viewportScale = 20
-        this.fpsTarget = 1000/50
+        this.viewportScale = 15
+        this.fpsTarget = 1000/60
         this.width = 0
         this.height = 0
         this.loopTimer = false
@@ -272,7 +256,8 @@ class WebGLViewport extends Viewport
         return shader
     
     initDraw: =>
-        this.gl.clearColor(1.0, 1.0, 1.0, 1.0)
+        rgb = this.convertColour([20, 20, 20], 1.0)
+        this.gl.clearColor(rgb[0], rgb[1], rgb[2], rgb[3])
     
     reshapeViewport: =>
         width = @canvas.width()
@@ -281,14 +266,18 @@ class WebGLViewport extends Viewport
         mat3.ortho2D(@pMatrix, 0, width, height, 0)
         this.setPMatrixUniform()
     
+    convertColour: (rgb, alpha) =>
+        return [parseFloat(rgb[0]/255.0), parseFloat(rgb[1]/255.0), parseFloat(rgb[2]/255.0), alpha]
+    
     setColour: (rgb) =>
         rgb = [0,0,0] if not rgb or rgb.length != 3
+        rgb = this.convertColour(rgb, 1.0)
         @gl.uniform4f(
             @shaderProgram.glColorUniform,
-            parseFloat(rgb[0]/255.0),
-            parseFloat(rgb[1]/255.0),
-            parseFloat(rgb[2]/255.0),
-            1.0
+            rgb[0],
+            rgb[1],
+            rgb[2],
+            rgb[3]
         )
     
     drawBox: (x, y, width, height, angle, colour) =>
