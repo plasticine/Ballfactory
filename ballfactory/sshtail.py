@@ -1,6 +1,9 @@
 import os
 import select
 import time
+import warnings
+warnings.filterwarnings("ignore")
+# This is pretty shithouse.
 import paramiko
 import hashlib
 import logging
