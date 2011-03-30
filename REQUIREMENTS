@@ -1,7 +1,8 @@
+configobj==4.7.2
+httpagentparser==0.8.4
+importlib==1.0.2
+paramiko==1.7.6
 pycrypto==2.0.1
-paramiko
-configobj
-httpagentparser
-importlib
-pycurl
-tornado
+pycurl==7.19.0
+tornado==1.2.1
+wsgiref==0.1.2
