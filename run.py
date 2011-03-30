@@ -33,7 +33,6 @@ from ballfactory.sshtail import SSHFileTail
 
 define("port", default=8888, help="run on the given port", type=int)
 
-
 class Application(tornado.web.Application):
     def __init__(self):
         routes = [
@@ -122,6 +121,7 @@ def main():
         tornado.options.parse_command_line()
         http_server = tornado.httpserver.HTTPServer(application)
         http_server.listen(options.port)
+        print 'Server started at http://localhost:%s/' % options.port
         tornado.ioloop.IOLoop.instance().start()
     except KeyboardInterrupt:
         tornado.ioloop.IOLoop.instance().stop()
