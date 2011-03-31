@@ -1,5 +1,5 @@
 (function() {
-  var CanvasViewport, Engine, Remotes, Viewport, WebGLViewport;
+  var CanvasViewport, Engine, Remotes, Statistics, Viewport, WebGLViewport;
   var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
     for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
     function ctor() { this.constructor = child; }
@@ -18,11 +18,12 @@
       this.physicsMessage = __bind(this.physicsMessage, this);;      this.drawables = [];
       this.colours = JSON.parse($('#colours').text());
       this.remotes = new Remotes(this);
+      this.statistics = new Statistics(this);
       this.viewport = false;
       this.viewport = new WebGLViewport(this);
       this.minBallSize = 10;
       this.maxBallSize = 60;
-      this.minRequestSize = 64;
+      this.minRequestSize = 0;
       this.maxRequestSize = 1 * 1024 * 1024;
       this.ballSizeRanges = [];
       this.physics = new Worker('/static/scripts/physics.js');
@@ -36,12 +37,12 @@
       var message;
       message = JSON.parse(event.data);
       switch (message.action) {
-        case 'update':
-          $('.physics-fps span', '#debug').html("" + message.fps);
-          return $('.ttl span', '#debug').html("" + (message.ttl / 1000) + "sec");
         case 'state':
           this.drawables = message.state;
           return $('.objects span', '#debug').html("" + this.drawables.length);
+        case 'update':
+          $('.physics-fps span', '#debug').html("" + message.fps);
+          return $('.ttl span', '#debug').html("" + (message.ttl / 1000) + "sec");
       }
     };
     Engine.prototype.physicsError = function(event) {
@@ -51,7 +52,8 @@
       var colour, radius;
       radius = this.getBallSize(request.body_bytes_sent);
       colour = this.getBallColour(request.type);
-      return this.addBallToWorker(radius, colour);
+      this.addBallToWorker(radius, colour);
+      return this.statistics.update(request);
     };
     Engine.prototype.addBallToWorker = function(radius, colour) {
       return this.physics.postMessage(JSON.stringify({
@@ -111,6 +113,39 @@
     Remotes.prototype.onopen = function() {};
     Remotes.prototype.onclose = function() {};
     return Remotes;
+  })();
+  Statistics = (function() {
+    function Statistics(parent) {
+      this.parent = parent;
+      this.filesizeFormat = __bind(this.filesizeFormat, this);;
+      this.update = __bind(this.update, this);;
+      this.stats = {
+        'request_types': {},
+        'total_bytes': 0
+      };
+    }
+    Statistics.prototype.update = function(request) {
+      var filesize, unit, _ref;
+      this.stats.total_bytes += parseInt(request.body_bytes_sent);
+      _ref = this.filesizeFormat(this.stats.total_bytes), filesize = _ref[0], unit = _ref[1];
+      return $('.total-transfer', '#statistics').html("" + filesize + unit);
+    };
+    Statistics.prototype.filesizeFormat = function(bytes) {
+      if (bytes >= 1073741824) {
+        return [(bytes / 1073741824).toFixed(2), 'GB'];
+      } else {
+        if (bytes >= 1048576) {
+          return [(bytes / 1048576).toFixed(2), 'MB'];
+        } else {
+          if (bytes >= 1024) {
+            return [(bytes / 1024).toFixed(2), 'KB'];
+          } else {
+            return [bytes, 'bytes'];
+          }
+        }
+      }
+    };
+    return Statistics;
   })();
   Viewport = (function() {
     function Viewport(parent) {

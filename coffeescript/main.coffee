@@ -3,12 +3,13 @@ class Engine
         this.drawables = []
         this.colours = JSON.parse($('#colours').text())
         this.remotes = new Remotes(this)
+        this.statistics = new Statistics(this)
         this.viewport = false
         this.viewport = new WebGLViewport(this)
         # this.viewport = new CanvasViewport(this)
         this.minBallSize = 10
         this.maxBallSize = 60
-        this.minRequestSize = 64 # 64 bytes
+        this.minRequestSize = 0 # 0 bytes (304 request)
         this.maxRequestSize = 1 * 1024 * 1024 # 5 megabytes
         this.ballSizeRanges = []
         this.physics = new Worker('/static/scripts/physics.js')
@@ -21,12 +22,12 @@ class Engine
     physicsMessage: (event) =>
         message = JSON.parse(event.data)
         switch message.action
-            when 'update'
-                $('.physics-fps span', '#debug').html("#{ message.fps }")
-                $('.ttl span', '#debug').html("#{ message.ttl / 1000 }sec")
             when 'state'
                 @drawables = message.state
                 $('.objects span', '#debug').html("#{ @drawables.length }")
+            when 'update'
+                $('.physics-fps span', '#debug').html("#{ message.fps }")
+                $('.ttl span', '#debug').html("#{ message.ttl / 1000 }sec")
     
     physicsError: (event) ->
         console.log 'physicsError:', event
@@ -35,6 +36,7 @@ class Engine
         radius = this.getBallSize(request.body_bytes_sent)
         colour = this.getBallColour(request.type)
         this.addBallToWorker(radius, colour)
+        this.statistics.update(request)
     
     addBallToWorker: (radius, colour) =>
         this.physics.postMessage(JSON.stringify({
@@ -83,6 +85,32 @@ class Remotes
     
     onclose: =>
         # console.log 'onclose'
+
+
+class Statistics
+    constructor: (@parent) ->
+        this.stats = {
+            'request_types':{},
+            'total_bytes':0
+        }
+    
+    update: (request) =>
+        @stats.total_bytes += parseInt(request.body_bytes_sent)
+        
+        [filesize, unit] = this.filesizeFormat(@stats.total_bytes)
+        $('.total-transfer', '#statistics').html("#{ filesize }#{ unit }")
+    
+    filesizeFormat: (bytes) =>
+        if bytes >= 1073741824
+            return [(bytes / 1073741824).toFixed(2), 'GB']
+        else
+            if bytes >= 1048576
+                return [(bytes / 1048576).toFixed(2), 'MB']
+            else
+                if bytes >= 1024
+                    return [(bytes / 1024).toFixed(2), 'KB']
+                else
+                    return [bytes, 'bytes']
 
 
 class Viewport
