@@ -9,11 +9,11 @@ class PhysicsWorker
         this.shapeTypes = ['circle', 'polygon']
         this.loopTimer = false
         this.updateTimer = false
-        this.physicsScale = 15
+        this.physicsScale = 20
         this.ballMaxTTL = 10 * 60 * 1000 # 10mins
         this.ballTTL = 1000 * 1 # 1 seconds
-        this.velocityIterationsPerSecond = 300
-        this.positionIterationsPerSecond = 200
+        this.velocityIterationsPerSecond = 60
+        this.positionIterationsPerSecond = 40
         this.fpsTarget = 50
         this.fpsActual = 0
         this.frames = 0
@@ -60,8 +60,8 @@ class PhysicsWorker
     addBall: (radius, colour) =>
         fixture = new b2FixtureDef()
         fixture.shape = new b2CircleShape(radius / @physicsScale);
-        fixture.friction = 0.5;
-        fixture.restitution = 0.35;
+        fixture.friction = 0.35;
+        fixture.restitution = 0.2;
         fixture.density = 10.0;
         ballBody = new b2BodyDef()
         ballBody.type = b2Body.b2_dynamicBody
@@ -88,14 +88,14 @@ class PhysicsWorker
         @frames = 0
     
     checkTTL: =>
-        if @fpsActual < 60 and @ballTTL > 5000
-            delta = 100 * (60 - @fpsActual)
+        if @fpsActual < 80 and @ballTTL > 5000
+            delta = 100 * (80 - @fpsActual)
             if delta < @ballTTL
                 @ballTTL -= delta
             else if delta < 0
                 @ballTTL = 2500
-        if @fpsActual > 60 and @ballTTL < @ballMaxTTL
-            @ballTTL += 10 * (@fpsActual - 60)
+        if @fpsActual > 80 and @ballTTL < @ballMaxTTL
+            @ballTTL += 10 * (@fpsActual - 0)
         setTimeout(( => @checkTTL() ), 100)
     
     updateState: =>
@@ -130,7 +130,7 @@ class PhysicsWorker
             'action':'state',
             'state':@state
         }))
-        @stateTimer = setTimeout(( => @updateState() ), 1000/30)
+        @stateTimer = setTimeout(( => @updateState() ), 1000/60)
     
     loop: =>
         clearTimeout(@loopTimer)

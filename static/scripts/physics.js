@@ -19,11 +19,11 @@ PhysicsWorker = (function() {
     this.shapeTypes = ['circle', 'polygon'];
     this.loopTimer = false;
     this.updateTimer = false;
-    this.physicsScale = 15;
+    this.physicsScale = 20;
     this.ballMaxTTL = 10 * 60 * 1000;
     this.ballTTL = 1000 * 1;
-    this.velocityIterationsPerSecond = 300;
-    this.positionIterationsPerSecond = 200;
+    this.velocityIterationsPerSecond = 60;
+    this.positionIterationsPerSecond = 40;
     this.fpsTarget = 50;
     this.fpsActual = 0;
     this.frames = 0;
@@ -68,8 +68,8 @@ PhysicsWorker = (function() {
     var ball, ballBody, fixture, x;
     fixture = new b2FixtureDef();
     fixture.shape = new b2CircleShape(radius / this.physicsScale);
-    fixture.friction = 0.5;
-    fixture.restitution = 0.35;
+    fixture.friction = 0.35;
+    fixture.restitution = 0.2;
     fixture.density = 10.0;
     ballBody = new b2BodyDef();
     ballBody.type = b2Body.b2_dynamicBody;
@@ -99,16 +99,16 @@ PhysicsWorker = (function() {
   };
   PhysicsWorker.prototype.checkTTL = function() {
     var delta;
-    if (this.fpsActual < 60 && this.ballTTL > 5000) {
-      delta = 100 * (60 - this.fpsActual);
+    if (this.fpsActual < 80 && this.ballTTL > 5000) {
+      delta = 100 * (80 - this.fpsActual);
       if (delta < this.ballTTL) {
         this.ballTTL -= delta;
       } else if (delta < 0) {
         this.ballTTL = 2500;
       }
     }
-    if (this.fpsActual > 60 && this.ballTTL < this.ballMaxTTL) {
-      this.ballTTL += 10 * (this.fpsActual - 60);
+    if (this.fpsActual > 80 && this.ballTTL < this.ballMaxTTL) {
+      this.ballTTL += 10 * (this.fpsActual - 0);
     }
     return setTimeout((__bind(function() {
       return this.checkTTL();
@@ -155,7 +155,7 @@ PhysicsWorker = (function() {
     }));
     return this.stateTimer = setTimeout((__bind(function() {
       return this.updateState();
-    }, this)), 1000 / 30);
+    }, this)), 1000 / 60);
   };
   PhysicsWorker.prototype.loop = function() {
     var delta, now;
