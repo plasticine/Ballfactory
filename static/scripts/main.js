@@ -21,8 +21,8 @@
       this.viewport = false;
       this.viewport = new WebGLViewport(this);
       this.minBallSize = 10;
-      this.maxBallSize = 45;
-      this.minRequestSize = 1024;
+      this.maxBallSize = 60;
+      this.minRequestSize = 64;
       this.maxRequestSize = 1 * 1024 * 1024;
       this.ballSizeRanges = [];
       this.physics = new Worker('/static/scripts/physics.js');

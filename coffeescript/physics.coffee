@@ -12,8 +12,8 @@ class PhysicsWorker
         this.physicsScale = 15
         this.ballMaxTTL = 10 * 60 * 1000 # 10mins
         this.ballTTL = 1000 * 1 # 1 seconds
-        this.velocityIterationsPerSecond = 60
-        this.positionIterationsPerSecond = 40
+        this.velocityIterationsPerSecond = 300
+        this.positionIterationsPerSecond = 200
         this.fpsTarget = 50
         this.fpsActual = 0
         this.frames = 0
@@ -130,7 +130,7 @@ class PhysicsWorker
             'action':'state',
             'state':@state
         }))
-        @stateTimer = setTimeout(( => @updateState() ), 1000/60)
+        @stateTimer = setTimeout(( => @updateState() ), 1000/100)
     
     loop: =>
         clearTimeout(@loopTimer)

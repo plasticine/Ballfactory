@@ -22,8 +22,8 @@ PhysicsWorker = (function() {
     this.physicsScale = 15;
     this.ballMaxTTL = 10 * 60 * 1000;
     this.ballTTL = 1000 * 1;
-    this.velocityIterationsPerSecond = 60;
-    this.positionIterationsPerSecond = 40;
+    this.velocityIterationsPerSecond = 300;
+    this.positionIterationsPerSecond = 200;
     this.fpsTarget = 50;
     this.fpsActual = 0;
     this.frames = 0;
@@ -155,7 +155,7 @@ PhysicsWorker = (function() {
     }));
     return this.stateTimer = setTimeout((__bind(function() {
       return this.updateState();
-    }, this)), 1000 / 60);
+    }, this)), 1000 / 100);
   };
   PhysicsWorker.prototype.loop = function() {
     var delta, now;

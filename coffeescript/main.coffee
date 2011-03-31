@@ -7,8 +7,8 @@ class Engine
         this.viewport = new WebGLViewport(this)
         # this.viewport = new CanvasViewport(this)
         this.minBallSize = 10
-        this.maxBallSize = 45
-        this.minRequestSize = 1024 # 1 kilobyte
+        this.maxBallSize = 60
+        this.minRequestSize = 64 # 64 bytes
         this.maxRequestSize = 1 * 1024 * 1024 # 5 megabytes
         this.ballSizeRanges = []
         this.physics = new Worker('/static/scripts/physics.js')
