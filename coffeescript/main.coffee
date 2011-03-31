@@ -9,7 +9,7 @@ class Engine
         this.minBallSize = 10
         this.maxBallSize = 45
         this.minRequestSize = 1024 # 1 kilobyte
-        this.maxRequestSize = 5 * 1024 * 1024 # 5 megabytes
+        this.maxRequestSize = 1 * 1024 * 1024 # 5 megabytes
         this.ballSizeRanges = []
         this.physics = new Worker('/static/scripts/physics.js')
         this.physics.onmessage = this.physicsMessage
@@ -88,7 +88,7 @@ class Remotes
 class Viewport
     constructor: (@parent) ->
         this.canvas = $('canvas#viewport')
-        this.viewportScale = 20
+        this.viewportScale = 15
         this.fpsTarget = 1000/32
         this.width = 0
         this.height = 0
@@ -157,8 +157,8 @@ class WebGLViewport extends Viewport
         this.gl = WebGLUtils.create3DContext(@canvas[0], null)
         this.mvMatrix = mat3.create()
         this.pMatrix = mat3.create()
-        this.circleDetail = 12
-        this.circleEdges = 16
+        this.circleDetail = 18
+        this.circleEdges = 24
         this.circleShapeVbo = this.createCircleShapeVbo()
         this.boxShapeVbo = this.createBoxShapeVbo()
         this.initShaders()

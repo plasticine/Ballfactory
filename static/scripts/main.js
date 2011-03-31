@@ -23,7 +23,7 @@
       this.minBallSize = 10;
       this.maxBallSize = 45;
       this.minRequestSize = 1024;
-      this.maxRequestSize = 5 * 1024 * 1024;
+      this.maxRequestSize = 1 * 1024 * 1024;
       this.ballSizeRanges = [];
       this.physics = new Worker('/static/scripts/physics.js');
       this.physics.onmessage = this.physicsMessage;
@@ -120,7 +120,7 @@
       this.loop = __bind(this.loop, this);;
       this.loopIterator = __bind(this.loopIterator, this);;
       this.canvas = $('canvas#viewport');
-      this.viewportScale = 20;
+      this.viewportScale = 15;
       this.fpsTarget = 1000 / 32;
       this.width = 0;
       this.height = 0;
@@ -212,8 +212,8 @@
       this.gl = WebGLUtils.create3DContext(this.canvas[0], null);
       this.mvMatrix = mat3.create();
       this.pMatrix = mat3.create();
-      this.circleDetail = 12;
-      this.circleEdges = 16;
+      this.circleDetail = 18;
+      this.circleEdges = 24;
       this.circleShapeVbo = this.createCircleShapeVbo();
       this.boxShapeVbo = this.createBoxShapeVbo();
       this.initShaders();

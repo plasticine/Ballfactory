@@ -9,7 +9,7 @@ class PhysicsWorker
         this.shapeTypes = ['circle', 'polygon']
         this.loopTimer = false
         this.updateTimer = false
-        this.physicsScale = 20
+        this.physicsScale = 15
         this.ballMaxTTL = 10 * 60 * 1000 # 10mins
         this.ballTTL = 1000 * 1 # 1 seconds
         this.velocityIterationsPerSecond = 60
