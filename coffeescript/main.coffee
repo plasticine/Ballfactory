@@ -74,9 +74,9 @@ class Remotes
         $.each @hosts, (index, host) =>
             host.close()
     onmessage: (event) =>
+        @parent.handleRemoteRequest(JSON.parse(event.data))
         this.requests++
         $('.requests span', '#debug').html("#{ this.requests }")
-        @parent.handleRemoteRequest(JSON.parse(event.data))
     
     onopen: =>
         # console.log 'onopen'
@@ -88,16 +88,18 @@ class Remotes
 class Viewport
     constructor: (@parent) ->
         this.canvas = $('canvas#viewport')
-        this.viewportScale = 15
-        this.fpsTarget = 1000/60
+        this.viewportScale = 20
+        this.fpsTarget = 1000/32
         this.width = 0
         this.height = 0
-        this.loopTimer = false
         this.framerateTimer = false
         this.fpsActual = 0
         this.frames = 0
         this.lastUpdate = 0
         this.fps()
+    
+    loopIterator: =>
+        setTimeout(( => @loop() ), @fpsTarget)
     
     loop: =>
         now = new Date().getTime()
@@ -105,7 +107,7 @@ class Viewport
         @lastUpdate = now
         this.draw()
         @frames++
-        @loopTimer = setTimeout(( => @loop() ), @fpsTarget)
+        this.loopIterator()
     
     scale: (qty) =>
         qty * @viewportScale
@@ -155,14 +157,18 @@ class WebGLViewport extends Viewport
         this.gl = WebGLUtils.create3DContext(@canvas[0], null)
         this.mvMatrix = mat3.create()
         this.pMatrix = mat3.create()
-        this.circleDetail = 16
-        this.circleEdges = 32
+        this.circleDetail = 12
+        this.circleEdges = 16
         this.circleShapeVbo = this.createCircleShapeVbo()
         this.boxShapeVbo = this.createBoxShapeVbo()
         this.initShaders()
         this.initDraw()
         this.reshapeViewport()
+        window.addEventListener('message', this.loop, false)
         this.loop()
+    
+    loopIterator: =>
+        window.postMessage('redraw', window.location)
     
     createStaticShapeVbo: (vertices, itemSize, numItems) =>
         vbo = @gl.createBuffer()

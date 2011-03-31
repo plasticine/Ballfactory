@@ -104,9 +104,9 @@
       }, this));
     };
     Remotes.prototype.onmessage = function(event) {
+      this.parent.handleRemoteRequest(JSON.parse(event.data));
       this.requests++;
-      $('.requests span', '#debug').html("" + this.requests);
-      return this.parent.handleRemoteRequest(JSON.parse(event.data));
+      return $('.requests span', '#debug').html("" + this.requests);
     };
     Remotes.prototype.onopen = function() {};
     Remotes.prototype.onclose = function() {};
@@ -118,18 +118,23 @@
       this.fps = __bind(this.fps, this);;
       this.scale = __bind(this.scale, this);;
       this.loop = __bind(this.loop, this);;
+      this.loopIterator = __bind(this.loopIterator, this);;
       this.canvas = $('canvas#viewport');
-      this.viewportScale = 15;
-      this.fpsTarget = 1000 / 60;
+      this.viewportScale = 20;
+      this.fpsTarget = 1000 / 32;
       this.width = 0;
       this.height = 0;
-      this.loopTimer = false;
       this.framerateTimer = false;
       this.fpsActual = 0;
       this.frames = 0;
       this.lastUpdate = 0;
       this.fps();
     }
+    Viewport.prototype.loopIterator = function() {
+      return setTimeout((__bind(function() {
+        return this.loop();
+      }, this)), this.fpsTarget);
+    };
     Viewport.prototype.loop = function() {
       var delta, now;
       now = new Date().getTime();
@@ -137,9 +142,7 @@
       this.lastUpdate = now;
       this.draw();
       this.frames++;
-      return this.loopTimer = setTimeout((__bind(function() {
-        return this.loop();
-      }, this)), this.fpsTarget);
+      return this.loopIterator();
     };
     Viewport.prototype.scale = function(qty) {
       return qty * this.viewportScale;
@@ -204,19 +207,24 @@
       this.createCircleShapeVbo = __bind(this.createCircleShapeVbo, this);;
       this.createBoxShapeVbo = __bind(this.createBoxShapeVbo, this);;
       this.createStaticShapeVbo = __bind(this.createStaticShapeVbo, this);;
+      this.loopIterator = __bind(this.loopIterator, this);;
       WebGLViewport.__super__.constructor.call(this, this.parent);
       this.gl = WebGLUtils.create3DContext(this.canvas[0], null);
       this.mvMatrix = mat3.create();
       this.pMatrix = mat3.create();
-      this.circleDetail = 16;
-      this.circleEdges = 32;
+      this.circleDetail = 12;
+      this.circleEdges = 16;
       this.circleShapeVbo = this.createCircleShapeVbo();
       this.boxShapeVbo = this.createBoxShapeVbo();
       this.initShaders();
       this.initDraw();
       this.reshapeViewport();
+      window.addEventListener('message', this.loop, false);
       this.loop();
     }
+    WebGLViewport.prototype.loopIterator = function() {
+      return window.postMessage('redraw', window.location);
+    };
     WebGLViewport.prototype.createStaticShapeVbo = function(vertices, itemSize, numItems) {
       var vbo;
       vbo = this.gl.createBuffer();
